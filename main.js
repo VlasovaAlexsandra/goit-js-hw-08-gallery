@@ -1,82 +1,101 @@
 "use strict";
 
-import gallery from "./gallery-items.js";
-
-const KEYCODE_ESC = 27;
+import galleryItems from "./gallery-items.js";
 
 const refs = {
-  list: document.querySelector(".gallery"),
-  divLightbox: document.querySelector("div.lightbox"),
-  lightboxImage: document.querySelector(".lightbox___image"),
-  lightboxContent: document.querySelector(".lightbox__content"),
-  lightBoxBtn: document.querySelector(".lightbox__button"),
+  gallery: document.querySelector(".js-gallery"),
+  closeButton: document.querySelector('button[data-action="close-lightbox"]'),
+  overlay: document.querySelector("div.lightbox__content"),
+  item: document.querySelector(".lightbox__image"),
+  openModalWindow: document.querySelector("div.lightbox"),
+  img: document.querySelector(".lightbox__image"),
 };
 
-const galleryProcess = (gallery) => {
-  return gallery.map(({ preview, original, description }) => {
-    const localRefs = {
-      item: document.createElement("li"),
-      link: document.createElement("a"),
-      image: document.createElement("img"),
-      span: document.createElement("span"),
-      i: document.createElement("i"),
-    };
-
-    localRefs.item.classList.add("gallery__item");
-    localRefs.link.classList.add("gallery__link");
-    localRefs.link.setAttribute("href", original);
-    localRefs.image.classList.add("gallery__image");
-    localRefs.image.setAttribute("src", preview);
-    localRefs.image.setAttribute("data-source", original);
-    localRefs.image.setAttribute("alt", description);
-    localRefs.span.classList.add("gallery__icon");
-    localRefs.i.classList.add("material-icons");
-    localRefs.i.textContent = "zoom out map";
-    localRefs.span.appendChild(localRefs.i);
-    localRefs.link.appendChild(localRefs.image);
-    localRefs.link.appendChild(localRefs.span);
-    localRefs.item.appendChild(localRefs.link);
-
-    return localRefs.item;
-  });
-};
-
-const items = galleryProcess(gallery);
-items.forEach((item) => {
-  refs.list.appendChild(item);
+// Создание и рендер разметки по массиву данных и предоставленному шаблону.
+let imageItem = "";
+galleryItems.forEach((item) => {
+  imageItem = `<li class="gallery__item">
+  <a
+    class="gallery__link"
+    href=${item.original}
+  >
+    <img
+      class="gallery__image"
+      src=${item.preview}
+      data-source=${item.original}
+      alt=${item.description}
+    />
+  </a>
+</li>`;
+  refs.gallery.insertAdjacentHTML("beforeend", imageItem);
 });
 
-const handleClick = (e) => {
-  e.preventDefault();
-  const data = e.target.dataset.source;
-  const image = refs.lightboxImage.cloneNode(false);
-  image.setAttribute("src", data);
-  image.setAttribute("alt", e.target.alt);
-  refs.lightboxContent.innerHTML = "";
-  refs.lightboxContent.append(image);
-  refs.divLightbox.classList.add("is-open");
-};
+// Реализация делегирования на галерее ul.js-gallery и получение url большого изображения.
+refs.gallery.addEventListener("click", handeleOpenItem);
+refs.closeButton.addEventListener("click", hangeleCloseButton);
+refs.overlay.addEventListener("click", hangeleCloseOverlay);
 
-const closeHandler = () => {
-  refs.divLightbox.classList.remove("is-open");
-};
-
-const handleKeyup = (e) => {
-  if (e.keyCode == KEYCODE_ESC) {
-    console.log("key ESC pressed");
-    closeHandler();
+function handeleOpenItem(evt) {
+  evt.preventDefault();
+  const targetImage = evt.target;
+  if (targetImage === evt.currentTarget) {
+    return; // при нажатии на ul - мы выходим
   }
-};
+  // Открытие модального окна по клику на элементе галереи.
+  refs.openModalWindow.classList.add("is-open");
+  // Подмена значения атрибута src элемента img.lightbox__image.
+  refs.img.alt = targetImage.alt;
+  refs.img.src = targetImage.dataset.source;
+  window.addEventListener("keyup", handleEscape);
+  window.addEventListener("keyup", handleScrolling);
+}
+// Закрытие модального окна по клику на кнопку button[data-action="close-modal"].
+function hangeleCloseButton() {
+  refs.openModalWindow.classList.remove("is-open");
+  // Очистка значения атрибута src элемента img.lightbox__image. Это необходимо для того,
+  // чтобы при следующем открытии модального окна, пока грузится изображение, мы не видели предыдущее.
+  refs.img.alt = "";
+  refs.img.src = "";
+  window.removeEventListener("keyup", handleEscape);
+  window.removeEventListener("keyup", handleScrolling);
+}
 
-const contentClickHandler = (e) => {
-  if (e.target !== e.currentTarget) {
+// Закрытие модального окна по клику на div.lightbox__overlay.
+function hangeleCloseOverlay(evt) {
+  if (evt.target !== evt.currentTarget) {
     return;
   }
+  hangeleCloseButton();
+}
+// Закрытие модального окна по нажатию клавиши ESC.
+function handleEscape(evt) {
+  if (evt.keyCode !== 27) {
+    return;
+  }
+  hangeleCloseButton();
+}
+// Пролистывание изображений галереи в открытом модальном окне клавишами "влево" и "вправо".
+let originItems = [];
+galleryItems.forEach((item) => {
+  originItems.push(item.original);
+});
 
-  closeHandler();
-};
+function handleScrolling(evt) {
+  let index = originItems.indexOf(refs.item.src);
 
-refs.list.addEventListener("click", handleClick);
-refs.lightBoxBtn.addEventListener("click", closeHandler);
-window.addEventListener("keyup", handleKeyup);
-refs.lightboxContent.addEventListener("click", contentClickHandler);
+  if (evt.keyCode === 39) {
+    if (index < originItems.length - 1) {
+      refs.item.setAttribute("src", originItems[index + 1]);
+    } else {
+      index = -1;
+      refs.item.setAttribute("src", originItems[index + 1]);
+    }
+  }
+
+  if (evt.keyCode === 37) {
+    if (index === 0) {
+      index = originItems.length;
+      refs.item.setAttribute("src", originItems[index - 1]);
+    } else refs.item.setAttribute("src", originItems[index - 1]);
+  }
+}
