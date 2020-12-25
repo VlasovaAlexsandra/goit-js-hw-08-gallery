@@ -1,4 +1,4 @@
-"use strict";
+// "use strict";
 
 import galleryItems from "./gallery-items.js";
 
@@ -12,6 +12,7 @@ const refs = {
 };
 
 // Создание и рендер разметки по массиву данных и предоставленному шаблону.
+
 let imageItem = "";
 galleryItems.forEach((item) => {
   imageItem = `<li class="gallery__item">
@@ -21,7 +22,7 @@ galleryItems.forEach((item) => {
   >
     <img
       class="gallery__image"
-      src=${item.preview}
+      src=${item.preview} 
       data-source=${item.original}
       alt=${item.description}
     />
